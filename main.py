@@ -348,14 +348,20 @@ class UltraGCN(nn.Module):
 
     def cal_loss_I(self, users, pos_items):
         device = self.get_device()
-        neighbor_embeds = self.item_embeds(self.ii_neighbor_mat[pos_items].to(device))    # len(pos_items) * num_neighbors * dim
-        sim_scores = self.ii_constraint_mat[pos_items].to(device)     # len(pos_items) * num_neighbors
-        user_embeds = self.user_embeds(users).unsqueeze(1)
+    
+        ii_neighbor_mat_device = self.ii_neighbor_mat.to(device)  # Transférer ii_neighbor_mat sur le même dispositif
+        ii_constraint_mat_device = self.ii_constraint_mat.to(device)  # Transférer ii_constraint_mat sur le même dispositif
         
+        pos_items_device = pos_items.to(device)  # Transférer pos_items sur le même dispositif
+    
+        neighbor_embeds = self.item_embeds(ii_neighbor_mat_device[pos_items_device])
+        sim_scores = ii_constraint_mat_device[pos_items_device]
+        user_embeds = self.user_embeds(users).unsqueeze(1)
+    
         loss = -sim_scores * (user_embeds * neighbor_embeds).sum(dim=-1).sigmoid().log()
       
-        # loss = loss.sum(-1)
         return loss.sum()
+
 
     def norm_loss(self):
         loss = 0.0
