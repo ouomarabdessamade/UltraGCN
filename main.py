@@ -528,7 +528,7 @@ def NDCGatK_r(test_data, r, k):
 
 
 def test_one_batch(X, k):
-    sorted_items = X[0].numpy()
+    sorted_items = X[0].cpu().numpy()
     groundTrue = X[1]
     r = getLabel(groundTrue, sorted_items)
     ret = RecallPrecision_ATk(groundTrue, r, k)
