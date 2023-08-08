@@ -302,6 +302,9 @@ class UltraGCN(nn.Module):
 
     def get_omegas(self, users, pos_items, neg_items):
         device = self.get_device()
+        users = users.to(device)
+        pos_items = pos_items.to(device)
+
         if self.w2 > 0:
             pos_weight = torch.mul(self.constraint_mat['beta_uD'][users], self.constraint_mat['beta_iD'][pos_items]).to(device)
             pos_weight = self.w1 + self.w2 * pos_weight
