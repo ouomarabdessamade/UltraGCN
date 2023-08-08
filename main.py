@@ -545,6 +545,7 @@ def getLabel(test_data, pred_data):
     return np.array(r).astype('float')
 
 
+
 def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
     users_list = []
     rating_list = []
@@ -559,6 +560,10 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
             batch_users = batch_users.to(device)
             rating = model.test_foward(batch_users) 
             rating = rating.cpu()
+            
+            # Transférer le tensor rating sur le même dispositif que le masque
+            rating = rating.to(device)
+            
             rating += mask_device[batch_users]  # Utiliser le masque pour le batch actuel
             
             _, rating_K = torch.topk(rating, k=topk)
