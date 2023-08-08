@@ -348,6 +348,8 @@ class UltraGCN(nn.Module):
 
     def cal_loss_I(self, users, pos_items):
         device = self.get_device()
+        users = users.to(device)
+        pos_items = pos_items.to(device)
         neighbor_embeds = self.item_embeds(self.ii_neighbor_mat[pos_items].to(device))    # len(pos_items) * num_neighbors * dim
         sim_scores = self.ii_constraint_mat[pos_items].to(device)     # len(pos_items) * num_neighbors
         user_embeds = self.user_embeds(users).unsqueeze(1)
