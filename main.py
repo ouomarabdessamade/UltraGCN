@@ -555,7 +555,7 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
         for idx, batch_users in enumerate(test_loader):
             
             batch_users = batch_users.to(model.get_device())
-            rating = model.test_forward(batch_users) 
+            rating = model.test_foward(batch_users) 
             rating = rating.cpu()
             mask_device = mask[batch_users].to(rating.device)  # Transférer le masque sur le même dispositif
             rating += mask_device
