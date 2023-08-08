@@ -552,12 +552,13 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
 
     with torch.no_grad():
         model.eval()
+        device = model.get_device()
+        mask_device = mask.to(device)  # Transférer le masque sur le même dispositif que le modèle
         for idx, batch_users in enumerate(test_loader):
             
-            batch_users = batch_users.to(model.get_device())
+            batch_users = batch_users.to(device)
             rating = model.test_foward(batch_users) 
             rating = rating.cpu()
-            mask_device = mask.to(batch_users.device)  # Transférer le masque sur le même dispositif que batch_users
             rating += mask_device[batch_users]  # Utiliser le masque pour le batch actuel
             
             _, rating_K = torch.topk(rating, k=topk)
@@ -580,6 +581,7 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
     F1_score = 2 * (Precision * Recall) / (Precision + Recall)
 
     return F1_score, Precision, Recall, NDCG
+
 
 
 
