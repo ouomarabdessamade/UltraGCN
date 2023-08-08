@@ -306,7 +306,12 @@ class UltraGCN(nn.Module):
         pos_items = pos_items.to(device)
 
         if self.w2 > 0:
-            pos_weight = torch.mul(self.constraint_mat['beta_uD'][users], self.constraint_mat['beta_iD'][pos_items]).to(device)
+            beta_uD = self.constraint_mat['beta_uD'].to(device)
+            beta_iD = self.constraint_mat['beta_iD'].to(device)
+            
+            # Calculer pos_weight en utilisant les tenseurs transférés
+            pos_weight = torch.mul(beta_uD[users], beta_iD[pos_items])
+            #pos_weight = torch.mul(self.constraint_mat['beta_uD'][users], self.constraint_mat['beta_iD'][pos_items]).to(device)
             pos_weight = self.w1 + self.w2 * pos_weight
         else:
             pos_weight = self.w1 * torch.ones(len(pos_items)).to(device)
