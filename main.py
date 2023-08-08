@@ -426,7 +426,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
             writer.add_scalar("Loss/train_epoch", loss, epoch)
 
         need_test = True
-        if epoch < 310 and epoch % 10 != 0:
+        if epoch % 10 != 0:
             need_test = False
             
         if need_test:
