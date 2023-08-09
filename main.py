@@ -456,7 +456,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
             print('Results:')
             print('best epoch = {}, best recall = {}, best ndcg = {}'.format(best_epoch, best_recall, best_ndcg))
             print('The best model is saved at {}'.format(params['model_save_path']))
-            break
+            #break
 
     writer.flush()
 
