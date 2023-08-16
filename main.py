@@ -458,13 +458,12 @@ def Recall_ATk(test_data, r, k):
     pred_data : shape (test_batch, k) NOTE: pred_data should be pre-sorted
     k : top-k
     """
-	right_pred = r[:, :k].sum(1)
-	
-	recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
-	recall_n = np.where(recall_n != 0, recall_n, 1)
-	recall = np.sum(right_pred / recall_n)
-    
-	return recall
+    # if all_pos_num == 0:
+    #     return 0
+	r = np.asfarray(r)[:k]
+	return np.sum(r) / len(test_data)
+ 
+
 
 
 def MRRatK_r(r, k):
