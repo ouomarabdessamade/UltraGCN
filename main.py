@@ -463,6 +463,7 @@ def Recall_ATk(test_data, r, k):
 	recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
 	recall_n = np.where(recall_n != 0, recall_n, 1)
 	recall = np.sum(right_pred / recall_n)
+	print(recall)
     
 	return recall
 
@@ -514,7 +515,6 @@ def test_one_batch(X, ks):
     r = getLabel(groundTrue, sorted_items)
     for k in ks :
         rec = Recall_ATk(groundTrue, r, k)
-	print(rec)
         recall_atk.append(rec)
     return recall_atk, NDCGatK_r(groundTrue,r,ks)
 
