@@ -519,6 +519,7 @@ def test_one_batch(X, ks):
     ndcg_at_k = []
     sorted_items = X[0].cpu().numpy()
     groundTrue = X[1]
+    groundTrue = np.array(groundTrue)
     r = getLabel(groundTrue, sorted_items)
     for k in ks :
         rec = Recall_ATk(groundTrue, r, k)
