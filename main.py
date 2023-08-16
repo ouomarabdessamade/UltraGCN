@@ -479,42 +479,42 @@ def MRRatK_r(r, k):
 
 
 
-def NDCGatK_r(test_data, r, ks):
+def NDCGatK_r(test_data, r, k):
     """
     Normalized Discounted Cumulative Gain
     rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
     """
-    ndcg_atk = []
     assert len(r) == len(test_data)
-    for k in ks:
-        pred_data = r[:, :k]
+    pred_data = r[:, :k]
 
-        test_matrix = np.zeros((len(pred_data), k))
-        for i, items in enumerate(test_data):
-            length = k if k <= len(items) else len(items)
-            test_matrix[i, :length] = 1
-        max_r = test_matrix
-        idcg = np.sum(max_r * 1. / np.log2(np.arange(2, k + 2)), axis=1)
-        dcg = pred_data * (1. / np.log2(np.arange(2, k + 2)))
-        dcg = np.sum(dcg, axis=1)
-        idcg[idcg == 0.] = 1.
-        ndcg = dcg / idcg
-        ndcg[np.isnan(ndcg)] = 0.
-        res = np.sum(ndcg)
-        ndcg_atk.append(res)
+    test_matrix = np.zeros((len(pred_data), k))
+    for i, items in enumerate(test_data):
+        length = k if k <= len(items) else len(items)
+        test_matrix[i, :length] = 1
+    max_r = test_matrix
+    idcg = np.sum(max_r * 1. / np.log2(np.arange(2, k + 2)), axis=1)
+    dcg = pred_data * (1. / np.log2(np.arange(2, k + 2)))
+    dcg = np.sum(dcg, axis=1)
+    idcg[idcg == 0.] = 1.
+    ndcg = dcg / idcg
+    ndcg[np.isnan(ndcg)] = 0.
     
-    return ndcg_atk
+    
+    return np.sum(ndcg)
 
 
 def test_one_batch(X, ks):
     recall_atk = []
+    ncg_atk = []
     sorted_items = X[0].cpu().numpy()
     groundTrue = X[1]
     r = getLabel(groundTrue, sorted_items)
     for k in ks :
         rec = Recall_ATk(groundTrue, r, k)
+        ndcg = NDCGatK_r(groundTrue,r,k)
         recall_atk.append(rec)
-    return recall_atk, NDCGatK_r(groundTrue,r,ks)
+        ncg_atk.append(ndcg)
+    return recall_atk, ncg_atk
 
 def getLabel(test_data, pred_data):
     r = []
