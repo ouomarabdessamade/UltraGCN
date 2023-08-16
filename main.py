@@ -406,9 +406,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
                 writer.add_scalar('Results/ndcg@20', ret['ndcg'][1], epoch)
             test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
             
-            train_time = float(train_time)  # Convert train_time to a float if it's a string
-            perf_st = 'Epoch %d [%.1fs]: train==[%.5f]' % (epoch, train_time, loss)
-            print(perf_st)
+            print("Epoch : {%d}, Loss = {:.5f}, train time = {}".format(loss.item(), epoch, train_time))
             
             print("Loss = {:.5f}, test time = {}".format(loss.item(), test_time))
             perf_str = " Test : recall=[%s], ndcg=[%s]"% \
