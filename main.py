@@ -476,45 +476,56 @@ def MRRatK_r(r, k):
 	pred_data = pred_data.sum(1)
 	return np.sum(pred_data)
 
-
-
-
-def NDCGatK_r(test_data, r, ks):
+def dcg_at_k(r, k, method=1):
+    """Score is discounted cumulative gain (dcg)
+    Relevance is positive real values.  Can use binary
+    as the previous methods.
+    Returns:
+        Discounted cumulative gain
     """
-    Normalized Discounted Cumulative Gain
-    rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
-    """
-    ndcg_atk = []
-    for k in ks:
-        assert len(r) == len(test_data)
-        pred_data = r[:, :k]
+    r = np.asfarray(r)[:k]
+    if r.size:
+        if method == 0:
+            return r[0] + np.sum(r[1:] / np.log2(np.arange(2, r.size + 1)))
+        elif method == 1:
+            return np.sum(r / np.log2(np.arange(2, r.size + 2)))
+        else:
+            raise ValueError('method must be 0 or 1.')
+    return 0.
 
-        test_matrix = np.zeros((len(pred_data), k))
-        for i, items in enumerate(test_data):
-            length = k if k <= len(items) else len(items)
-            test_matrix[i, :length] = 1
-        max_r = test_matrix
-        idcg = np.sum(max_r * 1. / np.log2(np.arange(2, k + 2)), axis=1)
-        dcg = pred_data * (1. / np.log2(np.arange(2, k + 2)))
-        dcg = np.sum(dcg, axis=1)
-        idcg[idcg == 0.] = 1.
-        ndcg = dcg / idcg
-        ndcg[np.isnan(ndcg)] = 0.
-        res = np.sum(ndcg)
-        ndcg_atk.append(res)
-    
-    return ndcg_atk
+def NDCGatK_r(ground_truth, r, k, method=1):
+    """Score is normalized discounted cumulative gain (ndcg)
+    Relevance is positive real values.  Can use binary
+    as the previous methods.
+    Returns:
+        Normalized discounted cumulative gain
+
+        Low but correct defination
+    """
+    GT = set(ground_truth)
+    if len(GT) > k :
+        sent_list = [1.0] * k
+    else:
+        sent_list = [1.0]*len(GT) + [0.0]*(k-len(GT))
+    dcg_max = dcg_at_k(sent_list, k, method)
+    if not dcg_max:
+        return 0.
+    return dcg_at_k(r, k, method) / dcg_max
+
 
 
 def test_one_batch(X, ks):
     recall_atk = []
+    ndcg_at_k = []
     sorted_items = X[0].cpu().numpy()
     groundTrue = X[1]
     r = getLabel(groundTrue, sorted_items)
     for k in ks :
         rec = Recall_ATk(groundTrue, r, k)
+        dcg = NDCGatK_r(groundTrue,r,k)
         recall_atk.append(rec)
-    return recall_atk, NDCGatK_r(groundTrue,r,ks)
+        ndcg_at_k.append(dcg)
+    return recall_atk, ndcg_at_k
 
 def getLabel(test_data, pred_data):
     r = []
