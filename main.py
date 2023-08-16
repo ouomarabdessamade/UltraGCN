@@ -562,8 +562,8 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
         
         for j in range(len(rating_lists)):
             recall_atk, ndcg_atk = test_one_batch((rating_lists[j], groundTrue_list[j]), [k])
-            recall_atk_sum += np.array(recall_atk)
-            ndcg_atk_sum += np.array(ndcg_atk)
+            recall_atk_sum[j] = np.array(recall_atk)  # Utilisez j ici au lieu de i
+            ndcg_atk_sum[j] = np.array(ndcg_atk)  # Utilisez j ici au lieu de i
         
         recall_results[i] = np.mean(recall_atk_sum) / len(rating_lists)
         ndcg_results[i] = np.mean(ndcg_atk_sum) / len(rating_lists)
