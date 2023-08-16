@@ -500,7 +500,7 @@ def NDCGatK_r(test_data, r, k):
     ndcg[np.isnan(ndcg)] = 0.
     
     
-    return np.sum(ndcg)
+    return np.sum(ndcg) / len(test_data)
 
 
 def test_one_batch(X, ks):
