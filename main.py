@@ -1,35 +1,3 @@
-# =========================================================================
-# Copyright (C) 2020-2023. The UltraGCN Authors. All rights reserved.
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# NOTICE: This program bundles some third-party utility functions (hit, ndcg, 
-# RecallPrecision_ATk, MRRatK_r, NDCGatK_r, test_one_batch, getLabel) under
-# the MIT License.
-#
-# Copyright (C) 2020 Xiang Wang
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# =========================================================================
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -426,22 +394,29 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
             writer.add_scalar("Loss/train_epoch", loss, epoch)
 
         need_test = True
-        if epoch % 10 != 0:
+        if epoch % 20 != 0:
             need_test = False
             
         if need_test:
             start_time = time.time()
-            F1_score, Precision, Recall, NDCG = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
+            ret = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
             if params['enable_tensorboard']:
-                writer.add_scalar('Results/recall@20', Recall, epoch)
-                writer.add_scalar('Results/ndcg@20', NDCG, epoch)
+                writer.add_scalar('Results/recall@20', ret['recall'][1], epoch)
+                writer.add_scalar('Results/ndcg@20', ret['ndcg'][1], epoch)
             test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
             
-            print('The time for epoch {} is: train time = {}, test time = {}'.format(epoch, train_time, test_time))
-            print("Loss = {:.5f}, F1-score: {:5f} \t Precision: {:.5f}\t Recall: {:.5f}\tNDCG: {:.5f}".format(loss.item(), F1_score, Precision, Recall, NDCG))
+            perf_st = 'Epoch %d [%.1fs]: train==[%.5f]' % (
+                        epoch, train_time, loss)
+            print(perf_st)
+            
+            print("Loss = {:.5f}, test time = {}".format(loss.item(), test_time))
+            perf_str = " Test : recall=[%s], ndcg=[%s]"% \
+                    ('\t'.join(['%.5f' % r for r in ret['recall']]),
+                     '\t'.join(['%.5f' % r for r in ret['ndcg']]))
+            print(perf_str)
 
-            if Recall > best_recall:
-                best_recall, best_ndcg, best_epoch = Recall, NDCG, epoch
+            if ret['recall'][1] > best_recall:
+                best_recall, best_ndcg, best_epoch = ret['recall'][1], ret['ndcg'][1], epoch
                 early_stop_count = 0
                 torch.save(model.state_dict(), params['model_save_path'])
 
@@ -464,7 +439,6 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
 
 
 ########################### TESTING #####################################
-
 def hit(gt_item, pred_items):
 	if gt_item in pred_items:
 		return 1
@@ -478,7 +452,7 @@ def ndcg(gt_item, pred_items):
 	return 0
 
 
-def RecallPrecision_ATk(test_data, r, k):
+def Recall_ATk(test_data, r, k):
 	"""
     test_data should be a list? cause users may have different amount of pos items. shape (test_batch, k)
     pred_data : shape (test_batch, k) NOTE: pred_data should be pre-sorted
@@ -490,8 +464,8 @@ def RecallPrecision_ATk(test_data, r, k):
 	recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
 	recall_n = np.where(recall_n != 0, recall_n, 1)
 	recall = np.sum(right_pred / recall_n)
-	precis = np.sum(right_pred) / precis_n
-	return {'recall': recall, 'precision': precis}
+    
+	return recall
 
 
 def MRRatK_r(r, k):
@@ -505,34 +479,44 @@ def MRRatK_r(r, k):
 	return np.sum(pred_data)
 
 
-def NDCGatK_r(test_data, r, k):
-	"""
+
+
+def NDCGatK_r(test_data, r, ks):
+    """
     Normalized Discounted Cumulative Gain
     rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
     """
-	assert len(r) == len(test_data)
-	pred_data = r[:, :k]
+    ndcg_atk = []
+    for k in ks:
+        assert len(r) == len(test_data)
+        pred_data = r[:, :k]
 
-	test_matrix = np.zeros((len(pred_data), k))
-	for i, items in enumerate(test_data):
-		length = k if k <= len(items) else len(items)
-		test_matrix[i, :length] = 1
-	max_r = test_matrix
-	idcg = np.sum(max_r * 1. / np.log2(np.arange(2, k + 2)), axis=1)
-	dcg = pred_data * (1. / np.log2(np.arange(2, k + 2)))
-	dcg = np.sum(dcg, axis=1)
-	idcg[idcg == 0.] = 1.
-	ndcg = dcg / idcg
-	ndcg[np.isnan(ndcg)] = 0.
-	return np.sum(ndcg)
+        test_matrix = np.zeros((len(pred_data), k))
+        for i, items in enumerate(test_data):
+            length = k if k <= len(items) else len(items)
+            test_matrix[i, :length] = 1
+        max_r = test_matrix
+        idcg = np.sum(max_r * 1. / np.log2(np.arange(2, k + 2)), axis=1)
+        dcg = pred_data * (1. / np.log2(np.arange(2, k + 2)))
+        dcg = np.sum(dcg, axis=1)
+        idcg[idcg == 0.] = 1.
+        ndcg = dcg / idcg
+        ndcg[np.isnan(ndcg)] = 0.
+        res = np.sum(ndcg)
+        ndcg_atk.append(res)
+    
+    return ndcg_atk
 
 
-def test_one_batch(X, k):
+def test_one_batch(X, ks):
+    recall_atk = []
     sorted_items = X[0].cpu().numpy()
     groundTrue = X[1]
     r = getLabel(groundTrue, sorted_items)
-    ret = RecallPrecision_ATk(groundTrue, r, k)
-    return ret['precision'], ret['recall'], NDCGatK_r(groundTrue,r,k)
+    for k in ks :
+        rec = Recall_ATk(groundTrue, r, ks)
+        recall_atk.append(rec)
+    return recall_atk, NDCGatK_r(groundTrue,r,ks)
 
 def getLabel(test_data, pred_data):
     r = []
@@ -547,18 +531,17 @@ def getLabel(test_data, pred_data):
 
 
 def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
-    users_list = []
-    rating_list = []
+    rating_lists = []  # Crée une liste pour stocker les listes de ratings
     groundTrue_list = []
 
     with torch.no_grad():
         model.eval()
         device = model.get_device()
         mask_device = mask.to(device)  # Transférer le masque sur le même dispositif que le modèle
+
         for idx, batch_users in enumerate(test_loader):
-            
             batch_users = batch_users.to(device)
-            rating = model.test_foward(batch_users) 
+            rating = model.test_forward(batch_users) 
             rating = rating.cpu()
             
             # Transférer le tensor rating sur le même dispositif que le masque
@@ -566,26 +549,30 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
             
             rating += mask_device[batch_users]  # Utiliser le masque pour le batch actuel
             
-            _, rating_K = torch.topk(rating, k=topk)
-            rating_list.append(rating_K)
+            _, rating_K = torch.topk(rating, k=max(topk))  # Calculer les ratings pour le plus grand k dans topk
+            rating_lists.append(rating_K)
 
             groundTrue_list.append([test_ground_truth_list[u] for u in batch_users])
 
-    X = zip(rating_list, groundTrue_list)
-    Recall, Precision, NDCG = 0, 0, 0
-
-    for i, x in enumerate(X):
-        precision, recall, ndcg = test_one_batch(x, topk)
-        Recall += recall
-        Precision += precision
-        NDCG += ndcg
+    recall_results = np.zeros(len(topk))
+    ndcg_results = np.zeros(len(topk))
+    
+    for i, k in enumerate(topk):
+        recall_atk_sum = np.zeros(len(topk))
+        ndcg_atk_sum = np.zeros(len(topk))
         
-    Precision /= n_user
-    Recall /= n_user
-    NDCG /= n_user
-    F1_score = 2 * (Precision * Recall) / (Precision + Recall)
+        for j in range(len(rating_lists)):
+            recall_atk, ndcg_atk = test_one_batch((rating_lists[j], groundTrue_list[j]), [k])
+            recall_atk_sum += np.array(recall_atk)
+            ndcg_atk_sum += np.array(ndcg_atk)
+        
+        recall_results[i] = np.mean(recall_atk_sum) / len(rating_lists)
+        ndcg_results[i] = np.mean(ndcg_atk_sum) / len(rating_lists)
+    
+    result = {'recall': recall_results, 'ndcg': ndcg_results, 'auc': 0.}
+    return result
 
-    return F1_score, Precision, Recall, NDCG
+
 
 
 
