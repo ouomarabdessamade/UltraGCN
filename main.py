@@ -542,7 +542,7 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
 
         for idx, batch_users in enumerate(test_loader):
             batch_users = batch_users.to(device)
-            rating = model.test_forward(batch_users) 
+            rating = model.test_foward(batch_users) 
             rating = rating.cpu()
             
             # Transférer le tensor rating sur le même dispositif que le masque
