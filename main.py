@@ -70,8 +70,8 @@ def data_param_prepare(config_file):
     test_batch_size = config.getint('Testing', 'test_batch_size')
     params['test_batch_size'] = test_batch_size
     
-    topk = config.getint('Testing', 'topk') 
-    params['topk'] = topk
+    #topk = config.getint('Testing', 'topk') 
+    params['topk'] = [10,20,30,40,50]
 
     test_file_path = config['Testing']['test_file_path']
 
