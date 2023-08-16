@@ -463,7 +463,6 @@ def Recall_ATk(test_data, r, k):
 	recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
 	recall_n = np.where(recall_n != 0, recall_n, 1)
 	recall = np.sum(right_pred / recall_n)
-	print(recall)
     
 	return recall
 
@@ -558,16 +557,16 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
     ndcg_results = np.zeros(len(topk))
     
     for i, k in enumerate(topk):
-        recall_atk_sum = np.zeros(len(topk))
-        ndcg_atk_sum = np.zeros(len(topk))
+        recall_atk_sum = 0  # Accumulateur pour recall@k
+        ndcg_atk_sum = 0  # Accumulateur pour ndcg@k
         
         for j in range(len(rating_lists)):
             recall_atk, ndcg_atk = test_one_batch((rating_lists[j], groundTrue_list[j]), [k])
-            recall_atk_sum[j] = recall_atk[0]  # Utilisez 0 ici pour récupérer la valeur unique de recall_atk
-            ndcg_atk_sum[j] = ndcg_atk[0]  # Utilisez 0 ici pour récupérer la valeur unique de ndcg_atk
+            recall_atk_sum += recall_atk[0]  # Accumuler la valeur unique de recall@k
+            ndcg_atk_sum += ndcg_atk[0]  # Accumuler la valeur unique de ndcg@k
         
-        recall_results[i] = np.mean(recall_atk_sum) / len(rating_lists)
-        ndcg_results[i] = np.mean(ndcg_atk_sum) / len(rating_lists)
+        recall_results[i] = recall_atk_sum / len(rating_lists)  # Moyenne des valeurs accumulées
+        ndcg_results[i] = ndcg_atk_sum / len(rating_lists)  # Moyenne des valeurs accumulées
         
     result = {'recall': recall_results, 'ndcg': ndcg_results, 'auc': 0.}
     return result
