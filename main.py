@@ -390,26 +390,26 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
             loss.backward()
             optimizer.step()
         
-        train_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
+        #train_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
         if params['enable_tensorboard']:
             writer.add_scalar("Loss/train_epoch", loss, epoch)
 
         need_test = True
         if epoch % 20 != 0:
             need_test = False
-            
+        print("Epoch : {}   [{}]:   train == [{:.5f}]".format(epoch,  time.time() - start_time,loss.item()))    
         if need_test:
             start_time = time.time()
             ret = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
             if params['enable_tensorboard']:
                 writer.add_scalar('Results/recall@20', ret['recall'][1], epoch)
                 writer.add_scalar('Results/ndcg@20', ret['ndcg'][1], epoch)
-            test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
+            #test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
             
-            print("Epoch : {}   [{}]:   train == [{:.5f}]".format(epoch,  train_time,loss.item()))
+            print("Epoch : {}   [{}]:   train == [{:.5f}]".format(epoch,  time.time() - start_time,loss.item()))
 
             
-            print("Loss = {:.5f}, test time = {}".format(loss.item(), test_time))
+            print("Loss = {:.5f}, test time = {}".format(loss.item(), time.time() - test_time))
             perf_str = " Test : recall=[%s], ndcg=[%s]"% \
                     ('\t'.join(['%.5f' % r for r in ret['recall']]),
                      '\t'.join(['%.5f' % r for r in ret['ndcg']]))
