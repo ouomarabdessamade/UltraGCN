@@ -406,7 +406,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
                 writer.add_scalar('Results/ndcg@20', ret['ndcg'][1], epoch)
             test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
             
-            print("Epoch : {}, Loss = {:.5f}, train time = {}".format(epoch, loss.item(), train_time))
+            print("Epoch : {}   [{}]:   train == [{:.5f}]".format(epoch,  train_time,loss.item()))
 
             
             print("Loss = {:.5f}, test time = {}".format(loss.item(), test_time))
@@ -477,13 +477,25 @@ def MRRatK_r(r, k):
 	return np.sum(pred_data)
 
 
-
-
 def NDCGatK_r(test_data, r, k):
+	"""
+    test_data should be a list? cause users may have different amount of pos items. shape (test_batch, k)
+    pred_data : shape (test_batch, k) NOTE: pred_data should be pre-sorted
+    k : top-k
     """
+	right_pred = r[:, :k].sum(1)
+	
+	recall_n = np.array([len(test_data[i]) for i in range(len(test_data))])
+	recall_n = np.where(recall_n != 0, recall_n, 1)
+	recall = np.sum(right_pred / recall_n)
+	
+	return recall
+"""
+def NDCGatK_r(test_data, r, k):
+    
     Normalized Discounted Cumulative Gain
     rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
-    """
+
     assert len(r) == len(test_data)
     pred_data = r[:, :k]
 
@@ -500,9 +512,8 @@ def NDCGatK_r(test_data, r, k):
     ndcg[np.isnan(ndcg)] = 0.
     
     
-    return np.sum(ndcg) / len(test_data)
-
-
+    return np.sum(ndcg)
+"""
 def test_one_batch(X, ks):
     recall_atk = []
     ncg_atk = []
@@ -564,8 +575,8 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
             recall_atk_sum += recall_atk[0]  # Accumuler la valeur unique de recall@k
             ndcg_atk_sum += ndcg_atk[0]  # Accumuler la valeur unique de ndcg@k
         
-        recall_results[i] = recall_atk_sum / len(rating_lists)  # Moyenne des valeurs accumulées
-        ndcg_results[i] = ndcg_atk_sum / len(rating_lists)  # Moyenne des valeurs accumulées
+        recall_results[i] = recall_atk_sum / n_user # Moyenne des valeurs accumulées
+        ndcg_results[i] = ndcg_atk_sum / n_user  # Moyenne des valeurs accumulées
         
     result = {'recall': recall_results, 'ndcg': ndcg_results, 'auc': 0.}
     return result
