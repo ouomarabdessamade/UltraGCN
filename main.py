@@ -398,7 +398,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
         if epoch % 20 != 0:
             need_test = False
             
-        perf_str = 'Epoch %d [%.1fs]: train==[%.5f]' % (
+        perf_str = 'Epoch %d [%.1fs]:  train==[%.5f]' % (
             epoch, time() - t1, loss.item())
         print(perf_str)
         
@@ -410,11 +410,11 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
                 writer.add_scalar('Results/ndcg@20', ret['ndcg'][1], epoch)
             
             
-            perf_st = 'Epoch %d [%.1fs]: train==[%.5f]' % (
+            perf_st = 'Epoch %d [%.1fs]:  train==[%.5f]' % (
                 epoch, time() - t2, loss.item())
             print(perf_st)
-
-            perf_str = " Test : recall=[%s], ndcg=[%s]"% \
+            cprint("[TEST]")
+            perf_str = "recall=[%s], ndcg=[%s]"% \
                     ('\t'.join(['%.5f' % r for r in ret['recall']]),
                      '\t'.join(['%.5f' % r for r in ret['ndcg']]))
             print(perf_str)
@@ -575,7 +575,8 @@ def test(model, test_loader, test_ground_truth_list, mask, topk, n_user):
     return result
 
 
-
+def cprint(words : str):
+    print(f"\033[0;30;43m{words}\033[0m")
 
 
 
@@ -584,7 +585,7 @@ if __name__ == "__main__":
     parser.add_argument('--config_file', type=str, help='config file path')
     args = parser.parse_args()
 
-    print('###################### UltraGCN ######################')
+    cprint("[UltraGCN]")
 
     print('Loading Configuration...')
     params, constraint_mat, ii_constraint_mat, ii_neighbor_mat, train_loader, test_loader, mask, test_ground_truth_list, interacted_items = data_param_prepare(args.config_file)
