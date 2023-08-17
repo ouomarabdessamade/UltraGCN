@@ -2,13 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pickle
+from time import time
 import numpy as np
 import torch.utils.data as data
 import scipy.sparse as sp
 import os
 import gc
 import configparser
-import time
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 
@@ -375,7 +375,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
 
     for epoch in range(params['max_epoch']):
         model.train() 
-        start_time = time.time()
+        t1 = time.time()
 
         for batch, x in enumerate(train_loader): # x: tensor:[users, pos_items]
             users, pos_items, neg_items = Sampling(x, params['item_num'], params['negative_num'], interacted_items, params['sampling_sift_pos'])
@@ -397,19 +397,23 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
         need_test = True
         if epoch % 20 != 0:
             need_test = False
-        print("Epoch : {}   [{}]:   train == [{:.5f}]".format(epoch,  time.time() - start_time,loss.item()))    
+            
+        perf_str = 'Epoch %d [%.1fs]: train==[%.5f]' % (
+            epoch, time() - t1, loss.item())
+        print(perf_str)
+        
         if need_test:
-            start_time = time.time()
+            t2 = time.time()
             ret = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
             if params['enable_tensorboard']:
                 writer.add_scalar('Results/recall@20', ret['recall'][1], epoch)
                 writer.add_scalar('Results/ndcg@20', ret['ndcg'][1], epoch)
-            #test_time = time.strftime("%H: %M: %S", time.gmtime(time.time() - start_time))
             
-            print("Epoch : {}   [{}]:   train == [{:.5f}]".format(epoch,  time.time() - start_time,loss.item()))
+            
+            perf_st = 'Epoch %d [%.1fs]: train==[%.5f]' % (
+                epoch, time() - t2, loss.item())
+            print(perf_st)
 
-            
-            print("Loss = {:.5f}, test time = {}".format(loss.item(), time.time() - test_time))
             perf_str = " Test : recall=[%s], ndcg=[%s]"% \
                     ('\t'.join(['%.5f' % r for r in ret['recall']]),
                      '\t'.join(['%.5f' % r for r in ret['ndcg']]))
