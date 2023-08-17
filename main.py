@@ -375,7 +375,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
 
     for epoch in range(params['max_epoch']):
         model.train() 
-        t1 = time.time()
+        t1 = time()
 
         for batch, x in enumerate(train_loader): # x: tensor:[users, pos_items]
             users, pos_items, neg_items = Sampling(x, params['item_num'], params['negative_num'], interacted_items, params['sampling_sift_pos'])
@@ -403,7 +403,7 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
         print(perf_str)
         
         if need_test:
-            t2 = time.time()
+            t2 = time()
             ret = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
             if params['enable_tensorboard']:
                 writer.add_scalar('Results/recall@20', ret['recall'][1], epoch)
