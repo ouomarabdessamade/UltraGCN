@@ -7,7 +7,6 @@ import numpy as np
 import torch.utils.data as data
 import scipy.sparse as sp
 import os
-import gc
 import configparser
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -403,16 +402,11 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
         print(perf_str)
         
         if need_test:
-            t2 = time()
             ret = test(model, test_loader, test_ground_truth_list, mask, params['topk'], params['user_num'])
             if params['enable_tensorboard']:
                 writer.add_scalar('Results/recall@20', ret['recall'][1], epoch)
                 writer.add_scalar('Results/ndcg@20', ret['ndcg'][1], epoch)
             
-            
-            perf_st = 'Epoch %d [%.1fs]:  train==[%.5f]' % (
-                epoch, time() - t2, loss.item())
-            print(perf_st)
             cprint("[TEST]")
             perf_str = "recall=[%s], ndcg=[%s]"% \
                     ('\t'.join(['%.5f' % r for r in ret['recall']]),
