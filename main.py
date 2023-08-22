@@ -423,8 +423,8 @@ def train(model, optimizer, train_loader, test_loader, mask, test_ground_truth_l
                 if early_stop_count == params['early_stop_epoch']:
                     early_stop = True
         
-        if early_stop:
-            print('##########################################')
+        if early_stop and epoch > 999 :
+            print('===============================================')
             print('Early stop is triggered at {} epochs.'.format(epoch))
             print('Results:')
             print('best epoch = {}, best recall = {}, best ndcg = {}'.format(best_epoch, best_recall, best_ndcg))
